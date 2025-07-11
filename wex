@@ -1,48 +1,63 @@
--- Вставь сюда ключ, который ты вводишь в executor
-local userKey = "KEY123"  -- Убедись, что ключ без пробелов, правильно прописан
+-- === НАСТРОЙКИ ===
 
--- Таблица ключей с временем действия в минутах
+-- Вставь сюда ключ (в executor перед запуском скрипта)
+local userKey = "KEY123"  -- <<<<< ВСТАВЬ СЮДА КЛЮЧ
+
+-- Таблица ключей и их время действия в минутах
 local keys = {
-    ["WexcoreTest"] = 1,    -- 60 минут
-    ["KEY456"] = 1440,  -- 1 день (1440 минут)
+    ["0090"] = 1,
+    ["KEY456"] = 1440,
 }
 
--- Функция для проверки ключа
+-- === СКРИПТ ===
+
+local player = game:GetService("Players").LocalPlayer
+local currentTime = os.time()
+
+-- Создаём Value для хранения времени активации ключа (один раз за сессию)
+local container = player:FindFirstChild("ActivationStorage")
+if not container then
+    container = Instance.new("Folder")
+    container.Name = "ActivationStorage"
+    container.Parent = player
+end
+
+local function getOrCreateActivationValue(key)
+    local value = container:FindFirstChild(key)
+    if not value then
+        value = Instance.new("IntValue")
+        value.Name = key
+        value.Value = 0
+        value.Parent = container
+    end
+    return value
+end
+
 local function isKeyValid(key)
-    -- Проверяем, есть ли ключ в таблице
     local validMinutes = keys[key]
     if not validMinutes then
-        return false, "Ключ не найден"  -- Если ключа нет в таблице
+        return false, "Licence not found"
     end
 
-    local currentTime = os.time()
-
-    -- Если активация не была записана, запишем текущее время
-    if not _G.activationTime then
-        _G.activationTime = currentTime
+    local activationValue = getOrCreateActivationValue(key)
+    if activationValue.Value == 0 then
+        activationValue.Value = currentTime
     end
 
-    -- Считаем прошедшее время в минутах
-    local elapsed = (currentTime - _G.activationTime) / 60
+    local elapsed = math.floor((currentTime - activationValue.Value) / 60)
 
-    -- Проверка, не истёк ли срок действия
     if elapsed > validMinutes then
         return false, "Срок действия ключа истёк"
     end
 
-    -- Если ключ валиден, возвращаем оставшееся время
-    return true, math.floor(validMinutes - elapsed)
+    return true, validMinutes - elapsed
 end
 
--- Проверка ключа
-local valid, info = isKeyValid(userKey)
-
--- Если ключ валиден, запускаем скрипт
-if valid then
-    print("Ключ валиден, осталось минут: "..info)
-    -- Запуск твоего скрипта (заменить на нужный тебе loadstring)
+-- Проверка и выполнение
+local success, info = isKeyValid(userKey)
+if success then
+    print("Licence Activated, Minutes Left: " .. info)
     loadstring(game:HttpGet("https://raw.githubusercontent.com/wizzardd1337/adminguii/main/admingui", true))()
 else
-    -- Если ключ невалиден или срок действия истёк, выводим ошибку
-    warn("Ошибка активации: "..info)
+    warn("Error: " .. info)
 end
