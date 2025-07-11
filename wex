@@ -1,20 +1,21 @@
--- === НАСТРОЙКИ ===
+-- === [НАСТРОЙКИ] ===
 
--- Вставь сюда ключ (в executor перед запуском скрипта)
-local userKey = "KEY123"  -- <<<<< ВСТАВЬ СЮДА КЛЮЧ
+-- Введи ключ вручную перед запуском скрипта (в Executor)
+local userKey = "KEY123"
 
--- Таблица ключей и их время действия в минутах
+-- Таблица всех ключей и сколько они действуют (в минутах)
 local keys = {
-    ["0090"] = 1,
-    ["KEY456"] = 1440,
+    ["robloxpidor"] = 2,    -- 60 минут
+    ["KEY456"] = 1440,  -- 1 день
+    ["WEXCORE1337"] = 9999 -- пример VIP ключа
 }
 
--- === СКРИПТ ===
+-- === [ПРОВЕРКА КЛЮЧА] ===
 
 local player = game:GetService("Players").LocalPlayer
 local currentTime = os.time()
 
--- Создаём Value для хранения времени активации ключа (один раз за сессию)
+-- Хранилище данных активации (на сессию)
 local container = player:FindFirstChild("ActivationStorage")
 if not container then
     container = Instance.new("Folder")
@@ -22,6 +23,7 @@ if not container then
     container.Parent = player
 end
 
+-- Получить или создать хранилище времени активации
 local function getOrCreateActivationValue(key)
     local value = container:FindFirstChild(key)
     if not value then
@@ -33,31 +35,43 @@ local function getOrCreateActivationValue(key)
     return value
 end
 
+-- Основная проверка ключа
 local function isKeyValid(key)
     local validMinutes = keys[key]
     if not validMinutes then
-        return false, "Licence not found"
+        return false, "Ключ не найден"
     end
 
     local activationValue = getOrCreateActivationValue(key)
+
+    -- Если первый раз — сохранить время активации
     if activationValue.Value == 0 then
         activationValue.Value = currentTime
     end
 
+    -- Сколько прошло минут
     local elapsed = math.floor((currentTime - activationValue.Value) / 60)
 
+    -- Если просрочен
     if elapsed > validMinutes then
-        return false, "Срок действия ключа истёк"
+        return false, "Срок действия ключа истёк (" .. elapsed .. " мин назад)"
     end
 
+    -- Успешно: вернуть сколько осталось
     return true, validMinutes - elapsed
 end
 
--- Проверка и выполнение
+-- === [РЕЗУЛЬТАТ] ===
+
 local success, info = isKeyValid(userKey)
+
 if success then
-    print("Licence Activated, Minutes Left: " .. info)
+    print("✅ Ключ принят! Осталось минут: " .. info)
+    print("▶ Запуск основного скрипта...")
+
+    -- Загружаем твой скрипт
     loadstring(game:HttpGet("https://raw.githubusercontent.com/wizzardd1337/adminguii/main/admingui", true))()
+
 else
-    warn("Error: " .. info)
+    warn("❌ Ошибка: " .. info)
 end
