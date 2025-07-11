@@ -1,21 +1,29 @@
--- === [НАСТРОЙКИ] ===
+local userKey = "KEY123"  -- ← Введённый ключ
 
--- Введи ключ вручную перед запуском скрипта (в Executor)
-local userKey = "KEY123"
-
--- Таблица всех ключей и сколько они действуют (в минутах)
 local keys = {
-    ["robloxpidor"] = 2,    -- 60 минут
-    ["KEY456"] = 1440,  -- 1 день
-    ["WEXCORE1337"] = 9999 -- пример VIP ключа
+    ["1212"] = 2,    -- Ключ: KEY123, действует 60 минут
+    ["KEY456"] = 1440,  -- Ключ: KEY456, действует 1 день
 }
-
--- === [ПРОВЕРКА КЛЮЧА] ===
 
 local player = game:GetService("Players").LocalPlayer
 local currentTime = os.time()
 
--- Хранилище данных активации (на сессию)
+-- DEBUG: Показываем что введено и что ожидается
+print("=== ОТЛАДКА ===")
+print("Введённый ключ: [" .. userKey .. "]")
+for k, v in pairs(keys) do
+    print("Ключ в таблице: [" .. k .. "] (" .. v .. " минут)")
+end
+print("===============")
+
+-- Проверка наличия ключа
+local validMinutes = keys[userKey]
+if not validMinutes then
+    warn("❌ Ключ не найден! Убедись, что написан точно как в таблице.")
+    return
+end
+
+-- Папка для хранения таймера
 local container = player:FindFirstChild("ActivationStorage")
 if not container then
     container = Instance.new("Folder")
@@ -23,55 +31,28 @@ if not container then
     container.Parent = player
 end
 
--- Получить или создать хранилище времени активации
-local function getOrCreateActivationValue(key)
-    local value = container:FindFirstChild(key)
-    if not value then
-        value = Instance.new("IntValue")
-        value.Name = key
-        value.Value = 0
-        value.Parent = container
-    end
-    return value
+-- Получаем или создаём время активации
+local value = container:FindFirstChild(userKey)
+if not value then
+    value = Instance.new("IntValue")
+    value.Name = userKey
+    value.Value = 0
+    value.Parent = container
 end
 
--- Основная проверка ключа
-local function isKeyValid(key)
-    local validMinutes = keys[key]
-    if not validMinutes then
-        return false, "Ключ не найден"
-    end
-
-    local activationValue = getOrCreateActivationValue(key)
-
-    -- Если первый раз — сохранить время активации
-    if activationValue.Value == 0 then
-        activationValue.Value = currentTime
-    end
-
-    -- Сколько прошло минут
-    local elapsed = math.floor((currentTime - activationValue.Value) / 60)
-
-    -- Если просрочен
-    if elapsed > validMinutes then
-        return false, "Срок действия ключа истёк (" .. elapsed .. " мин назад)"
-    end
-
-    -- Успешно: вернуть сколько осталось
-    return true, validMinutes - elapsed
+if value.Value == 0 then
+    value.Value = currentTime
 end
 
--- === [РЕЗУЛЬТАТ] ===
+local elapsedMinutes = math.floor((currentTime - value.Value) / 60)
 
-local success, info = isKeyValid(userKey)
-
-if success then
-    print("✅ Ключ принят! Осталось минут: " .. info)
-    print("▶ Запуск основного скрипта...")
-
-    -- Загружаем твой скрипт
-    loadstring(game:HttpGet("https://raw.githubusercontent.com/wizzardd1337/adminguii/main/admingui", true))()
-
-else
-    warn("❌ Ошибка: " .. info)
+if elapsedMinutes > validMinutes then
+    warn("❌ Ключ просрочен (" .. elapsedMinutes .. " минут прошло)")
+    return
 end
+
+local timeLeft = validMinutes - elapsedMinutes
+print("✅ Ключ принят! Осталось минут: " .. timeLeft)
+
+-- Запуск скрипта
+loadstring(game:HttpGet("https://raw.githubusercontent.com/wizzardd1337/adminguii/main/admingui", true))()
